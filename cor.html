@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wisconsin Card Sorting Test - Clínico Avanzado</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f2f2f7;
+            --text-color: #1c1c1e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            touch-action: none;
+            color: var(--text-color);
+        }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        /* HEADER SIMPLIFICADO */
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            background: rgba(255,255,255,0.6);
+            border-bottom: 1px solid rgba(255,255,255,0.5);
+            z-index: 10;
+        }
+
+        .score-pill {
+            padding: 6px 25px;
+            border-radius: 20px;
+        }
+
+        /* DISTRIBUCIÓN ESPACIADA IDÉNTICA A LA CAPTURA */
+        .game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; 
+            align-items: center;
+            position: relative;
+            padding: 4vh 10vw 8vh 10vw; /* Márgenes fluidos que empujan los elementos */
+            height: calc(100vh - 60px);
+        }
+
+        .bases-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px; /* Separación amplia entre las 4 tarjetas superiores */
+            width: 100%;
+            max-width: 750px;
+            justify-items: center;
+        }
+
+        /* TIPOGRAFÍA BOULDER (Gruesa, Blanca, Centrada) */
+        .middle-brand {
+            font-family: 'Arial Black', 'Impact', sans-serif !important;
+            font-size: 2.5rem !important; 
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.85) !important; /* Blanco sólido traslúcido */
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            text-transform: uppercase;
+            text-align: center;
+            width: 100%;
+            letter-spacing: 2px;
+            pointer-events: none;
+            display: block !important;
+            margin: auto 0;
+        }
+
+        /* CONTENEDOR DE LA CARTA INFERIOR */
+        .deck-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* TAMAÑO DE TARJETAS PROPORCIONAL A LA IMAGEN */
+        .card, .base-dropzone {
+            width: 115px;
+            height: 155px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .draggable {
+            cursor: grab;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            z-index: 50;
+        }
+
+        .dragging {
+            cursor: grabbing;
+            transition: none;
+            transform: scale(1.05);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            z-index: 100;
+        }
+
+        .shapes-grid {
+            display: grid;
+            width: 75%;
+            height: 75%;
+            align-items: center;
+            justify-items: center;
+            gap: 8px;
+        }
+
+        .grid-1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+        .grid-2 { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+        .shape-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .shape-svg {
+            width: 100%;
+            height: 100%;
+            max-width: 38px;
+            max-height: 38px;
+            object-fit: contain;
+        }
+
+        /* Feedback Animation Overlays */
+        .feedback-overlay {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .feedback-correct {
+            background: rgba(52, 199, 89, 0.9);
+            box-shadow: 0 0 40px rgba(52, 199, 89, 0.6);
+            animation: popIn 0.8s ease forwards;
+        }
+
+        .feedback-incorrect {
+            background: rgba(255, 59, 48, 0.9);
+            box-shadow: 0 0 40px rgba(255, 59, 48, 0.6);
+            animation: shake 0.5s ease forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        @keyframes shake {
+            0% { transform: translate(-50%, -50%) scale(1) translateX(0); opacity: 1; }
+            20% { transform: translate(-50%, -50%) scale(1) translateX(-12px); }
+            40% { transform: translate(-50%, -50%) scale(1) translateX(12px); }
+            60% { transform: translate(-50%, -50%) scale(1) translateX(-12px); }
+            80% { transform: translate(-50%, -50%) scale(1) translateX(12px); }
+            100% { transform: translate(-50%, -50%) scale(1) translateX(0); opacity: 0; }
+        }
+
+        svg.icon { width: 70px; height: 70px; fill: white; }
+
+        /* Report Screen */
+        .report-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 15px;
+            width: 100%;
+            min-height: 100vh;
+            overflow-y: auto;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .report-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 25px;
+            border-radius: 24px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .report-card h2 { margin-bottom: 20px; color: #1c1c1e; font-size: 1.4rem; }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            font-size: 1.05rem;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-val { font-weight: bold; color: #5856d6; }
+
+        .chart-box {
+            width: 100%;
+            margin-top: 25px;
+            padding: 10px;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 600px) {
+            .bases-container { gap: 10px; }
+            .card, .base-dropzone { width: 75px; height: 105px; border-radius: 10px; }
+            .shape-svg { max-width: 24px; max-height: 24px; }
+            .middle-brand { font-size: 1.5rem !important; }
+        }
+
+        @media (orientation: landscape) {
+            .game-area { padding: 2vh 5vw 4vh 5vw; }
+            .bases-container { gap: 15px; }
+            .card, .base-dropzone { width: 100px; height: 130px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-game-layout" style="display: flex; flex-direction: column; width: 100%;">
+        <div class="header">
+            <div class="score-pill glass" style="color: #5856d6;">Ensayo: <span id="trial-counter">1</span>/36</div>
+        </div>
+
+        <div class="game-area" id="game-area">
+            <div class="bases-container" id="bases"></div>
+
+            <div class="middle-brand">gomisferio.com</div>
+
+            <div class="deck-container">
+                <div class="card draggable" id="active-card"></div>
+            </div>
+
+            <div id="feedback" class="feedback-overlay"></div>
+        </div>
+    </div>
+
+    <div id="report-screen" class="report-container">
+        <div class="report-card">
+            <h2>Resultados del Perfil Cognitivo</h2>
+            <div class="metric-row"><span>Total de Ensayos Evaluados:</span> <span class="metric-val" id="rep-total">36</span></div>
+            <div class="metric-row"><span>Aciertos Totales:</span> <span class="metric-val" style="color: #28a745;" id="rep-correct">0</span></div>
+            <div class="metric-row"><span>Errores Totales:</span> <span class="metric-val" style="color: #dc3545;" id="rep-incorrect">0</span></div>
+            <div class="metric-row"><span>Errores Perseverativos:</span> <span class="metric-val" id="rep-perseverative">0</span></div>
+            <div class="metric-row"><span>Errores No Perseverativos:</span> <span class="metric-val" id="rep-non-perseverative">0</span></div>
+            <div class="metric-row"><span>Bloques de Regla Ejecutados:</span> <span class="metric-val" id="rep-categories">6/6</span></div>
+            
+            <div class="chart-box">
+                <canvas id="wisconsinChart"></canvas>
+            </div>
+
+            <button onclick="window.location.reload()" style="margin-top: 25px; background: #5856d6; color: white; border: none; padding: 14px 30px; font-weight: bold; font-size: 1.1rem; border-radius: 14px; cursor: pointer; width: 100%;">
+                Repetir Evaluación
+            </button>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            
+            // --- Paradigma Estricto Estático (Color -> Forma -> Cantidad x2) ---
+            const secuenciaReglas = ['color', 'shape', 'quantity', 'color', 'shape', 'quantity'];
+            let indiceBloqueActual = 0;
+            let currentRule = secuenciaReglas[indiceBloqueActual];
+            let previousRule = null;
+            
+            let ensayosEnBloqueActual = 0;
+            const maxEnsayosPorBloque = 6;
+            const totalMaxTrials = 36; 
+
+            const colors = { red: '#FF3B30', blue: '#007AFF', green: '#34C759', yellow: '#FFCC00' };
+            const shapes = ['triangle', 'star', 'square', 'circle'];
+            const attributes = { colors: Object.keys(colors), shapes: shapes, quantities: [1, 2, 3, 4] };
+
+            let score = { correct: 0, incorrect: 0, perseverative: 0, nonPerseverative: 0 };
+            let totalTrials = 0;
+            let aciertosPorInstruccion = Array(6).fill(0);
+
+            const basesData = [
+                { id: 0, color: 'red', shape: 'triangle', quantity: 1 },
+                { id: 1, color: 'green', shape: 'star', quantity: 2 },
+                { id: 2, color: 'yellow', shape: 'square', quantity: 3 },
+                { id: 3, color: 'blue', shape: 'circle', quantity: 4 }
+            ];
+
+            let currentCardData = {};
+            const traductorReglas = { 'color': 'Color', 'shape': 'Forma', 'quantity': 'Cantidad' };
+
+            const activeCard = document.getElementById('active-card');
+            const basesContainer = document.getElementById('bases');
+            const feedbackEl = document.getElementById('feedback');
+            
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let currentTranslateX = 0, currentTranslateY = 0;
+            let animationFrameId;
+
+            // --- Utilidades Gráficas (SVG) ---
+            function getShapeSVG(shape, colorKey) {
+                const hexColor = colors[colorKey];
+                const svgNS = 'xmlns="http://www.w3.org/2000/svg"';
+                switch (shape) {
+                    case 'circle': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="${hexColor}"/></svg>`;
+                    case 'square': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" rx="15" fill="${hexColor}"/></svg>`;
+                    case 'triangle': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,10 95,90 5,90" fill="${hexColor}" stroke-linejoin="round"/></svg>`;
+                    case 'star': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 67,54 78,85 50,65 22,85 33,54 5,35 39,35" fill="${hexColor}"/></svg>`;
+                }
+            }
+
+            function renderCard(element, data) {
+                element.innerHTML = '';
+                const gridContainer = document.createElement('div');
+                gridContainer.className = `shapes-grid grid-${data.quantity}`;
+                for (let i = 0; i < data.quantity; i++) {
+                    const shapeWrapper = document.createElement('div');
+                    shapeWrapper.className = 'shape-wrapper';
+                    shapeWrapper.innerHTML = getShapeSVG(data.shape, data.color);
+                    if (data.quantity === 3 && i === 2) shapeWrapper.style.gridColumn = "1 / -1";
+                    gridContainer.appendChild(shapeWrapper);
+                }
+                element.appendChild(gridContainer);
+            }
+
+            // --- Lógica Funcional ---
+            function initGame() {
+                basesContainer.innerHTML = '';
+                basesData.forEach(base => {
+                    const baseEl = document.createElement('div');
+                    baseEl.className = 'card glass base-dropzone';
+                    baseEl.id = `base-${base.id}`;
+                    renderCard(baseEl, base);
+                    basesContainer.appendChild(baseEl);
+                });
+                generateNewCard();
+            }
+
+            function generateNewCard() {
+                currentCardData = {
+                    color: attributes.colors[Math.floor(Math.random() * 4)],
+                    shape: attributes.shapes[Math.floor(Math.random() * 4)],
+                    quantity: attributes.quantities[Math.floor(Math.random() * 4)]
+                };
+                renderCard(activeCard, currentCardData);
+                activeCard.style.transform = 'translate(0px, 0px)';
+                activeCard.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                currentTranslateX = 0;
+                currentTranslateY = 0;
+            }
+
+            function rotarInstruccionFija() {
+                previousRule = currentRule; 
+                indiceBloqueActual++;
+                
+                if (indiceBloqueActual < secuenciaReglas.length) {
+                    currentRule = secuenciaReglas[indiceBloqueActual];
+                    ensayosEnBloqueActual = 0;
+                } else {
+                    setTimeout(showFinalReport, 800);
+                }
+            }
+
+            function processTrialResults(droppedBase, isCorrect) {
+                totalTrials++;
+                ensayosEnBloqueActual++;
+                
+                if(totalTrials <= totalMaxTrials) {
+                    document.getElementById('trial-counter').innerText = Math.min(totalTrials + 1, totalMaxTrials);
+                }
+
+                let isPerseverative = false;
+                if (!isCorrect) {
+                    if (previousRule && currentCardData[previousRule] === droppedBase[previousRule]) {
+                        isPerseverative = true;
+                        score.perseverative++;
+                    } else {
+                        score.nonPerseverative++;
+                    }
+                } else {
+                    if (indiceBloqueActual < secuenciaReglas.length) {
+                        aciertosPorInstruccion[indiceBloqueActual]++;
+                    }
+                }
+
+                showFeedback(isCorrect);
+
+                if (ensayosEnBloqueActual >= maxEnsayosPorBloque) {
+                    rotarInstruccionFija();
+                } else if (totalTrials >= totalMaxTrials) {
+                    setTimeout(showFinalReport, 800);
+                }
+            }
+
+            function showFeedback(isCorrect) {
+                feedbackEl.className = 'feedback-overlay';
+                void feedbackEl.offsetWidth; 
+                
+                const svgIconNS = 'xmlns="http://www.w3.org/2000/svg"';
+                if (isCorrect) {
+                    feedbackEl.innerHTML = `<svg ${svgIconNS} class="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+                    feedbackEl.classList.add('feedback-correct');
+                    score.correct++;
+                } else {
+                    feedbackEl.innerHTML = `<svg ${svgIconNS} class="icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
+                    feedbackEl.classList.add('feedback-incorrect');
+                    score.incorrect++;
+                }
+            }
+
+            function showFinalReport() {
+                document.getElementById('main-game-layout').style.display = 'none';
+                document.getElementById('report-screen').style.display = 'flex';
+                document.body.style.touchAction = 'auto'; 
+                document.body.style.overflow = 'auto';
+
+                document.getElementById('rep-correct').innerText = score.correct;
+                document.getElementById('rep-incorrect').innerText = score.incorrect;
+                document.getElementById('rep-perseverative').innerText = score.perseverative;
+                document.getElementById('rep-non-perseverative').innerText = score.nonPerseverative;
+
+                generarGraficaClinica();
+            }
+
+            function generarGraficaClinica() {
+                const etiquetasEjeX = secuenciaReglas.map((regla, index) => `${index + 1}º (${traductorReglas[regla]})`);
+                const ctx = document.getElementById('wisconsinChart').getContext('2d');
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: etiquetasEjeX,
+                        datasets: [{
+                            label: 'Aciertos por Bloque',
+                            data: aciertosPorInstruccion,
+                            backgroundColor: 'rgba(88, 86, 214, 0.65)',
+                            borderColor: 'rgba(88, 86, 214, 1)',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            barThickness: 16
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 6,
+                                ticks: { stepSize: 1 },
+                                title: { display: true, text: 'Nº de Aciertos', font: { weight: 'bold' } }
+                            },
+                            x: {
+                                title: { display: false },
+                                ticks: { font: { size: 9 } }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // --- Sistema Drag & Drop Táctil ---
+            function getEventCoords(e) {
+                return e.type.includes('touch') ? 
+                    { x: e.touches[0].clientX, y: e.touches[0].clientY } : 
+                    { x: e.clientX, y: e.clientY };
+            }
+
+            function onDragStart(e) {
+                if (totalTrials >= totalMaxTrials) return;
+                isDragging = true;
+                activeCard.classList.add('dragging');
+                activeCard.style.transition = 'none';
+                const coords = getEventCoords(e);
+                startX = coords.x - currentTranslateX;
+                startY = coords.y - currentTranslateY;
+                if (navigator.vibrate) navigator.vibrate(12);
+            }
+
+            function onDragMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                const coords = getEventCoords(e);
+                currentTranslateX = coords.x - startX;
+                currentTranslateY = coords.y - startY;
+                
+                if(animationFrameId) cancelAnimationFrame(animationFrameId);
+                animationFrameId = requestAnimationFrame(() => {
+                    activeCard.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(1.05)`;
+                });
+            }
+
+            function checkCollision() {
+                const cardRect = activeCard.getBoundingClientRect();
+                const cardCenter = { x: cardRect.left + cardRect.width / 2, y: cardRect.top + cardRect.height / 2 };
+                const dropzones = document.querySelectorAll('.base-dropzone');
+                for (let i = 0; i < dropzones.length; i++) {
+                    const baseRect = dropzones[i].getBoundingClientRect();
+                    if (cardCenter.x >= baseRect.left && cardCenter.x <= baseRect.right &&
+                        cardCenter.y >= baseRect.top && cardCenter.y <= baseRect.bottom) {
+                        return basesData[i];
+                    }
+                }
+                return null;
+            }
+
+            function onDragEnd(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                activeCard.classList.remove('dragging');
+                activeCard.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+                const droppedBase = checkCollision();
+
+                if (droppedBase) {
+                    const baseEl = document.getElementById(`base-${droppedBase.id}`);
+                    const baseRect = baseEl.getBoundingClientRect();
+                    const cardRect = activeCard.getBoundingClientRect();
+                    
+                    const snapX = currentTranslateX + (baseRect.left - cardRect.left) + (baseRect.width - cardRect.width)/2;
+                    const snapY = currentTranslateY + (baseRect.top - cardRect.top) + (baseRect.height - cardRect.height)/2;
+                    
+                    activeCard.style.transform = `translate(${snapX}px, ${snapY}px) scale(1)`;
+
+                    const isCorrect = currentCardData[currentRule] === droppedBase[currentRule];
+                    
+                    setTimeout(() => {
+                        processTrialResults(droppedBase, isCorrect);
+                        if (totalTrials < totalMaxTrials) generateNewCard();
+                    }, 300);
+                } else {
+                    currentTranslateX = 0;
+                    currentTranslateY = 0;
+                    activeCard.style.transform = `translate(0px, 0px) scale(1)`;
+                }
+            }
+
+            activeCard.addEventListener('mousedown', onDragStart);
+            document.addEventListener('mousemove', onDragMove, { passive: false });
+            document.addEventListener('mouseup', onDragEnd);
+
+            activeCard.addEventListener('touchstart', onDragStart, { passive: false });
+            document.addEventListener('touchmove', onDragMove, { passive: false });
+            document.addEventListener('touchend', onDragEnd);
+
+            initGame();
+        };
+    </script>
+</body>
+</html>
