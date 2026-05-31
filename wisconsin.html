@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -322,9 +322,8 @@
             let currentRule = secuenciaReglas[indiceBloqueActual];
             let previousRule = null;
             
-            let ensayosEnBloqueActual = 0;
-            const maxEnsayosPorBloque = 6;
-            const totalMaxTrials = 36; 
+            let aciertosConsecutivosEnBloque = 0; 
+            const objetivoAciertos = 10;
 
             const colors = { red: '#FF3B30', blue: '#007AFF', green: '#34C759', yellow: '#FFCC00' };
             const shapes = ['triangle', 'star', 'square', 'circle'];
@@ -425,17 +424,21 @@
                     document.getElementById('trial-counter').innerText = Math.min(totalTrials + 1, totalMaxTrials);
                 }
 
-                let isPerseverative = false;
-                if (!isCorrect) {
-                    if (previousRule && currentCardData[previousRule] === droppedBase[previousRule]) {
-                        isPerseverative = true;
-                        score.perseverative++;
-                    } else {
-                        score.nonPerseverative++;
+                // SUSTITUYE POR ESTO:
+                if (isCorrect) {
+                    aciertosConsecutivosEnBloque++; // Incrementa racha de aciertos
+                    score.correct++;
+                if (indiceBloqueActual < secuenciaReglas.length) {
+                    aciertosPorInstruccion[indiceBloqueActual]++;
                     }
                 } else {
-                    if (indiceBloqueActual < secuenciaReglas.length) {
-                        aciertosPorInstruccion[indiceBloqueActual]++;
+                    aciertosConsecutivosEnBloque = 0; // Reinicia la racha al fallar
+                    score.incorrect++;
+                    // Lógica de errores perseverativos
+                    if (previousRule && currentCardData[previousRule] === droppedBase[previousRule]) {
+                    score.perseverative++;
+                  } else {
+                       score.nonPerseverative++;
                     }
                 }
 
