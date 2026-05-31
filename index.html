@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wisconsin Card Sorting Test - Táctil</title>
+    <title>Instrucciones - Test de Wisconsin</title>
+    
     <style>
         :root {
             --bg-color: #f2f2f7;
@@ -25,7 +26,6 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            touch-action: none; /* Fundamental para evitar scroll accidental en táctil */
             color: var(--text-color);
         }
 
@@ -96,3 +96,21 @@
             transform: scale(0.95);
             background: #005bb5;
         }
+    </style>
+</head>
+<body>
+
+    <div id="intro-screen">
+        <div class="intro-card glass">
+            <h1>Test de Wisconsin</h1>
+            <div class="instructions-list">
+                <p>🧩 <strong>Objetivo:</strong> Arrastra la carta inferior hacia la carta base (arriba) con la que creas que hace pareja.</p>
+                <p>🕵️‍♂️ <strong>La regla secreta:</strong> No te diremos si debes emparejarlas por <strong>Color</strong>, <strong>Forma</strong> o <strong>Cantidad</strong>. Tendrás que deducirlo fijándote en si tu intento resulta ser Correcto o Incorrecto.</p>
+                <p>⚠️ <strong>¡Cuidado!:</strong> Una vez que descubras la regla, manténla... pero prepárate, porque en algún momento <strong>la regla cambiará</strong> sin previo aviso y tendrás que buscar una nueva estrategia.</p>
+            </div>
+            <button class="btn-continue" onclick="window.location.href='wisconsin.html'">Continuar</button>
+        </div>
+    </div>
+
+</body>
+</html>
