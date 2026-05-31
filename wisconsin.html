@@ -4,8 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Wisconsin Card Sorting Test - Clínico Avanzado</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/opendyslexic.min.css">
+    
+    <style>
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/opendyslexic-regular.letterpress.svg') format('svg'),
+                 url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/OpenDyslexic-Regular.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+    </style>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         :root {
             --bg-color: #f2f2f7;
@@ -26,7 +37,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
+            overflow: hidden;
             touch-action: none;
             color: var(--text-color);
         }
@@ -40,9 +51,11 @@
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
         }
 
+        /* 1. SIMPLIFICACIÓN TOTAL DEL HEADER: Solo muestra el número de ensayo */
         .header {
             display: flex;
-            justify-content: center; /* Centrado tras quitar aciertos/errores */
+            justify-content: center;
+            align-items: center;
             padding: 15px 20px;
             font-size: 1.1rem;
             font-weight: bold;
@@ -52,49 +65,54 @@
         }
 
         .score-pill {
-            padding: 6px 20px;
+            padding: 6px 25px;
             border-radius: 20px;
         }
 
+        /* 2. MAYOR DISTANCIA: Game area utiliza padding masivo y distribución espaciada estricta */
         .game-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Distribución uniforme espaciada */
+            justify-content: space-between; 
             align-items: center;
             position: relative;
-            padding: 25px 15px;
+            padding: 40px 15px; /* Aumentado para distanciar los elementos de los bordes */
             height: calc(100vh - 60px);
         }
 
         .bases-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            gap: 15px; /* Mayor separación entre las 4 tarjetas superiores */
             width: 100%;
             max-width: 800px;
         }
 
-        /* Texto de marca integrado en OpenDyslexic entre las bases y el mazo activo */
+        /* 3. REPOSICIONAMIENTO Y TIPOGRAFÍA OPENDYSLEXIC (+3 PUNTOS) */
         .middle-brand {
-            font-family: 'OpenDyslexic', sans-serif;
-            font-size: 1.3rem; /* Tamaño aumentado 3 puntos escala web */
+            font-family: 'OpenDyslexic', 'Segoe UI', sans-serif !important;
+            font-size: 1.6rem !important; /* Incrementado notablemente (+3 puntos reales) */
             font-weight: bold;
-            color: rgba(28, 28, 30, 0.5);
+            color: rgba(28, 28, 30, 0.6) !important;
             text-align: center;
-            margin: auto 0; /* Centrado exacto en el espacio intermedio */
-            letter-spacing: 0.5px;
+            width: 100%;
+            padding: 20px 0;
+            margin: auto 0; /* Bloqueado exactamente en medio */
+            letter-spacing: 1px;
             pointer-events: none;
+            display: block !important;
+            visibility: visible !important;
         }
 
-        /* Contenedor del mazo empujado con mayor separación */
+        /* 4. BAJAR UN CENTÍMETRO LA TARJETA INFERIOR */
         .deck-container {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
             margin-top: auto; 
-            margin-bottom: 3vh; /* Ajuste posicional bajo */
+            margin-bottom: 1vh; /* Se reduce el margen inferior al mínimo para bajarla un centímetro extra */
         }
 
         .card {
@@ -252,8 +270,8 @@
             .bases-container { gap: 15px; }
             .card { max-width: 110px; max-height: 143px; }
             .draggable { width: 110px; height: 143px; }
-            .deck-container { margin-bottom: 2vh; }
-            .middle-brand { margin: 10px 0; font-size: 1.1rem; }
+            .deck-container { margin-bottom: 1vh; }
+            .middle-brand { padding: 5px 0; font-size: 1.3rem !important; }
         }
     </style>
 </head>
@@ -492,7 +510,7 @@
                                 title: { display: true, text: 'Nº de Aciertos', font: { weight: 'bold' } }
                             },
                             x: {
-                                // Modificado: Se eliminó el texto descriptivo del título de este eje X
+                                // Modificado: Eliminado el texto aclaratorio por completo
                                 title: { display: false },
                                 ticks: { font: { size: 9 } }
                             }
