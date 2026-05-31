@@ -3,13 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wisconsin Card Sorting Test - Distribución Exacta</title>
+    <title>Wisconsin Card Sorting Test - Distribución Fija</title>
     
-    <!-- Importación de tipografía gruesa estilo Boulder/Punchy -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Inika:wght@700&display=swap" rel="stylesheet">
-
     <!-- Librería Chart.js para renderizar la gráfica de resultados -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -70,10 +65,10 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Distribuye arriba, centro y abajo de forma perfecta */
+            justify-content: space-between; 
             align-items: center;
             position: relative;
-            padding: 4vh 10vw 8vh 10vw; /* Añade márgenes fluidos laterales y verticales */
+            padding: 4vh 10vw 8vh 10vw; 
             height: calc(100vh - 60px);
         }
 
@@ -81,18 +76,18 @@
         .bases-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 40px; /* Mayor espacio de separación horizontal entre tarjetas */
+            gap: 40px; 
             width: 100%;
             max-width: 750px;
             justify-items: center;
         }
 
-        /* Bloque central de marca con tipografía BOULDER style en blanco */
+        /* Bloque central de marca con tipografía estilo BOULDER nativa en blanco */
         .middle-brand {
-            font-family: 'Cherry Bomb One', 'Inika', sans-serif !important;
-            font-size: 2.2rem !important; 
+            font-family: 'Arial Black', 'Impact', sans-serif !important;
+            font-size: 2.5rem !important; 
             font-weight: 900;
-            color: rgba(255, 255, 255, 0.85) !important; /* Blanco sólido traslúcido idéntico a la captura */
+            color: rgba(255, 255, 255, 0.85) !important; 
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             text-transform: uppercase;
             text-align: center;
@@ -288,7 +283,7 @@
         <div class="game-area" id="game-area">
             <div class="bases-container" id="bases"></div>
 
-            <!-- Marca central en suspensión proporcional con tipografía Boulder (Cherry Bomb Style) -->
+            <!-- Marca central en suspensión proporcional con tipografía Boulder -->
             <div class="middle-brand">GOMISFERIO.COM</div>
 
             <div class="deck-container">
