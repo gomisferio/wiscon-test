@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wisconsin Card Sorting Test - Táctil</title>
+    <title>Wisconsin Card Sorting Test - Clínico Avanzado</title>
+    <!-- Librería Chart.js para renderizar la gráfica de resultados al final -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #f2f2f7;
@@ -21,11 +23,11 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            touch-action: none; /* Fundamental para evitar scroll accidental en táctil */
+            overflow-x: hidden;
+            touch-action: none;
             color: var(--text-color);
         }
 
@@ -41,8 +43,8 @@
         .header {
             display: flex;
             justify-content: space-between;
-            padding: 20px;
-            font-size: 1.2rem;
+            padding: 15px 20px;
+            font-size: 1.1rem;
             font-weight: bold;
             background: rgba(255,255,255,0.6);
             border-bottom: 1px solid rgba(255,255,255,0.5);
@@ -50,7 +52,7 @@
         }
 
         .score-pill {
-            padding: 8px 16px;
+            padding: 6px 14px;
             border-radius: 20px;
         }
 
@@ -61,10 +63,11 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
+            justify-content: flex-start;
             align-items: center;
             position: relative;
-            padding: 20px 10px;
+            padding: 15px 10px;
+            height: calc(100vh - 60px);
         }
 
         .bases-container {
@@ -73,21 +76,25 @@
             gap: 10px;
             width: 100%;
             max-width: 800px;
+            margin-bottom: 3vh;
         }
 
+        /* Zona medio-baja ergonómica para la carta activa */
         .deck-container {
-            height: 160px;
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
+            margin-top: auto; 
+            margin-bottom: 8vh;
         }
 
         .card {
             width: 100%;
             aspect-ratio: 1 / 1.3;
-            max-width: 140px;
-            max-height: 182px;
+            max-width: 135px;
+            max-height: 175px;
             border-radius: 16px;
             display: flex;
             justify-content: center;
@@ -101,8 +108,8 @@
             cursor: grab;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             z-index: 50;
-            width: 140px;
-            height: 182px;
+            width: 135px;
+            height: 175px;
         }
 
         .dragging {
@@ -138,19 +145,19 @@
         .shape-svg {
             width: 100%;
             height: 100%;
-            max-width: 45px;
-            max-height: 45px;
+            max-width: 42px;
+            max-height: 42px;
             object-fit: contain;
         }
 
-        /* Feedback Animation Overlay */
+        /* Feedback Animation Overlays */
         .feedback-overlay {
             position: absolute;
-            top: 50%;
+            top: 45%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 150px;
-            height: 150px;
+            width: 140px;
+            height: 140px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
@@ -180,95 +187,178 @@
 
         @keyframes shake {
             0% { transform: translate(-50%, -50%) scale(1) translateX(0); opacity: 1; }
-            20% { transform: translate(-50%, -50%) scale(1) translateX(-15px); }
-            40% { transform: translate(-50%, -50%) scale(1) translateX(15px); }
-            60% { transform: translate(-50%, -50%) scale(1) translateX(-15px); }
-            80% { transform: translate(-50%, -50%) scale(1) translateX(15px); }
+            20% { transform: translate(-50%, -50%) scale(1) translateX(-12px); }
+            40% { transform: translate(-50%, -50%) scale(1) translateX(12px); }
+            60% { transform: translate(-50%, -50%) scale(1) translateX(-12px); }
+            80% { transform: translate(-50%, -50%) scale(1) translateX(12px); }
             100% { transform: translate(-50%, -50%) scale(1) translateX(0); opacity: 0; }
         }
 
-        svg.icon { width: 80px; height: 80px; fill: white; }
+        svg.icon { width: 70px; height: 70px; fill: white; }
+
+        /* Report Screen */
+        .report-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 15px;
+            width: 100%;
+            min-height: 100vh;
+            overflow-y: auto;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .report-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 25px;
+            border-radius: 24px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .report-card h2 { margin-bottom: 20px; color: #1c1c1e; font-size: 1.4rem; }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            font-size: 1.05rem;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-val { font-weight: bold; color: #5856d6; }
+
+        .chart-box {
+            width: 100%;
+            margin-top: 25px;
+            padding: 10px;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
 
         @media (orientation: landscape) {
-            .bases-container { gap: 20px; }
-            .card { max-width: 120px; max-height: 156px; }
-            .draggable { width: 120px; height: 156px; }
+            .bases-container { gap: 15px; margin-bottom: 1vh; }
+            .card { max-width: 110px; max-height: 143px; }
+            .draggable { width: 110px; height: 143px; }
+            .deck-container { margin-bottom: 2vh; }
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="score-pill glass aciertos">Aciertos: <span id="score-correct">0</span></div>
-        <div class="score-pill glass errores">Errores: <span id="score-incorrect">0</span></div>
-    </div>
-
-    <div class="game-area" id="game-area">
-        <div class="bases-container" id="bases">
-            </div>
-
-        <div class="deck-container">
-            <div class="card draggable" id="active-card">
-                </div>
+    <!-- Pantalla de Juego -->
+    <div id="main-game-layout" style="display: flex; flex-direction: column; width: 100%;">
+        <div class="header">
+            <div class="score-pill glass aciertos">Aciertos: <span id="score-correct">0</span></div>
+            <div class="score-pill glass" style="color: #5856d6;">Ensayo: <span id="trial-counter">1</span>/36</div>
+            <div class="score-pill glass errores">Errores: <span id="score-incorrect">0</span></div>
         </div>
 
-        <div id="feedback" class="feedback-overlay"></div>
+        <div class="game-area" id="game-area">
+            <div class="bases-container" id="bases"></div>
+
+            <div class="deck-container">
+                <div class="card draggable" id="active-card"></div>
+            </div>
+
+            <div id="feedback" class="feedback-overlay"></div>
+        </div>
+    </div>
+
+    <!-- Pantalla de Informe Clínico Final -->
+    <div id="report-screen" class="report-container">
+        <div class="report-card">
+            <h2>Resultados del Perfil Cognitivo</h2>
+            <div class="metric-row"><span>Total de Ensayos Evaluados:</span> <span class="metric-val" id="rep-total">36</span></div>
+            <div class="metric-row"><span>Aciertos Totales:</span> <span class="metric-val" style="color: #28a745;" id="rep-correct">0</span></div>
+            <div class="metric-row"><span>Errores Totales:</span> <span class="metric-val" style="color: #dc3545;" id="rep-incorrect">0</span></div>
+            <div class="metric-row"><span>Errores Perseverativos:</span> <span class="metric-val" id="rep-perseverative">0</span></div>
+            <div class="metric-row"><span>Errores No Perseverativos:</span> <span class="metric-val" id="rep-non-perseverative">0</span></div>
+            <div class="metric-row"><span>Bloques Completados:</span> <span class="metric-val" id="rep-categories">6/6</span></div>
+            
+            <div class="chart-box">
+                <canvas id="wisconsinChart"></canvas>
+            </div>
+
+            <button onclick="window.location.reload()" style="margin-top: 25px; background: #5856d6; color: white; border: none; padding: 14px 30px; font-weight: bold; font-size: 1.1rem; border-radius: 14px; cursor: pointer; width: 100%;">
+                Repetir Evaluación
+            </button>
+        </div>
     </div>
 
     <script>
-        // Envolvemos todo en window.onload para asegurar que el HTML esté listo
         window.onload = function() {
             
-            // --- 1. Definición del Paradigma y Variables ---
+            // --- 1. Definición de Estímulos y Atributos Básicos ---
             const colors = { red: '#FF3B30', blue: '#007AFF', green: '#34C759', yellow: '#FFCC00' };
             const shapes = ['triangle', 'star', 'square', 'circle'];
-            const attributes = {
-                colors: Object.keys(colors),
-                shapes: shapes,
-                quantities: [1, 2, 3, 4]
-            };
+            const attributes = { colors: Object.keys(colors), shapes: shapes, quantities: [1, 2, 3, 4] };
 
-            const ruleTypes = ['color', 'shape', 'quantity'];
-            let currentRule = ruleTypes[Math.floor(Math.random() * ruleTypes.length)];
-            let consecutiveCorrect = 0;
-            let score = { correct: 0, incorrect: 0 };
+            // --- 2. Motor de Aleatorización por Rondas (Estructura de 36 Ensayos) ---
+            function generarSecuenciaBloques() {
+                const base = ['color', 'shape', 'quantity'];
+                // Mezcla aleatoria de elementos (Algoritmo Fisher-Yates)
+                const shuffle = (array) => {
+                    for (let i = array.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [array[i], array[j]] = [array[j], array[i]];
+                    }
+                    return array;
+                };
+                // Creamos dos rondas independientes con sus bloques mezclados de forma separada
+                const ronda1 = shuffle([...base]);
+                const ronda2 = shuffle([...base]);
+                return [...ronda1, ...ronda2];
+            }
+
+            const secuenciaReglas = generarSecuenciaBloques();
+            let indiceBloqueActual = 0;
+            let currentRule = secuenciaReglas[indiceBloqueActual];
+            let previousRule = null;
             
+            let ensayosEnBloqueActual = 0;
+            const maxEnsayosPorBloque = 6;
+            const totalMaxTrials = 36; 
+
+            // Métricas y Contadores Estadísticos
+            let score = { correct: 0, incorrect: 0, perseverative: 0, nonPerseverative: 0 };
+            let totalTrials = 0;
+            let aciertosPorInstruccion = Array(6).fill(0);
+
             const basesData = [
                 { id: 0, color: 'red', shape: 'triangle', quantity: 1 },
                 { id: 1, color: 'green', shape: 'star', quantity: 2 },
                 { id: 2, color: 'yellow', shape: 'square', quantity: 3 },
-                { id: 3, color: 'blue', shape: 'circle', quantity: 4 }
+                { id: 3, blue: 'blue', color: 'blue', shape: 'circle', quantity: 4 } // Corregida consistencia
             ];
 
             let currentCardData = {};
+            const traductorReglas = { 'color': 'Color', 'shape': 'Forma', 'quantity': 'Cantidad' };
 
             // Elementos del DOM
             const activeCard = document.getElementById('active-card');
             const basesContainer = document.getElementById('bases');
             const feedbackEl = document.getElementById('feedback');
             
-            // Variables Drag & Drop
             let isDragging = false;
             let startX = 0, startY = 0;
-            let currentTranslateX = 0;
-            let currentTranslateY = 0;
+            let currentTranslateX = 0, currentTranslateY = 0;
             let animationFrameId;
 
-            // --- 2. Utilidades Gráficas (SVG) ---
+            // --- 3. Utilidades Gráficas (SVG) ---
             function getShapeSVG(shape, colorKey) {
                 const hexColor = colors[colorKey];
-                // El atributo xmlns es CRÍTICO para que los navegadores lo pinten correctamente al inyectar código
                 const svgNS = 'xmlns="http://www.w3.org/2000/svg"';
-                
                 switch (shape) {
-                    case 'circle':
-                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="${hexColor}"/></svg>`;
-                    case 'square':
-                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" rx="15" fill="${hexColor}"/></svg>`;
-                    case 'triangle':
-                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,10 95,90 5,90" fill="${hexColor}" stroke-linejoin="round"/></svg>`;
-                    case 'star':
-                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 67,54 78,85 50,65 22,85 33,54 5,35 39,35" fill="${hexColor}"/></svg>`;
+                    case 'circle': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="${hexColor}"/></svg>`;
+                    case 'square': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" rx="15" fill="${hexColor}"/></svg>`;
+                    case 'triangle': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,10 95,90 5,90" fill="${hexColor}" stroke-linejoin="round"/></svg>`;
+                    case 'star': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 67,54 78,85 50,65 22,85 33,54 5,35 39,35" fill="${hexColor}"/></svg>`;
                 }
             }
 
@@ -276,25 +366,19 @@
                 element.innerHTML = '';
                 const gridContainer = document.createElement('div');
                 gridContainer.className = `shapes-grid grid-${data.quantity}`;
-                
                 for (let i = 0; i < data.quantity; i++) {
                     const shapeWrapper = document.createElement('div');
                     shapeWrapper.className = 'shape-wrapper';
                     shapeWrapper.innerHTML = getShapeSVG(data.shape, data.color);
-                    
-                    // Centrar el 3º elemento abajo si la cantidad es 3
-                    if (data.quantity === 3 && i === 2) {
-                        shapeWrapper.style.gridColumn = "1 / -1";
-                    }
-                    
+                    if (data.quantity === 3 && i === 2) shapeWrapper.style.gridColumn = "1 / -1";
                     gridContainer.appendChild(shapeWrapper);
                 }
                 element.appendChild(gridContainer);
             }
 
-            // --- 3. Lógica del Juego ---
+            // --- 4. Lógica Funcional del Paradigma ---
             function initGame() {
-                basesContainer.innerHTML = ''; // Limpiar por si acaso
+                basesContainer.innerHTML = '';
                 basesData.forEach(base => {
                     const baseEl = document.createElement('div');
                     baseEl.className = 'card glass base-dropzone';
@@ -303,7 +387,6 @@
                     basesContainer.appendChild(baseEl);
                 });
                 generateNewCard();
-                console.log("Regla inicial oculta:", currentRule);
             }
 
             function generateNewCard() {
@@ -312,46 +395,131 @@
                     shape: attributes.shapes[Math.floor(Math.random() * 4)],
                     quantity: attributes.quantities[Math.floor(Math.random() * 4)]
                 };
-                
                 renderCard(activeCard, currentCardData);
-                
-                // Resetear posición de la tarjeta arrastrable
                 activeCard.style.transform = 'translate(0px, 0px)';
                 activeCard.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                 currentTranslateX = 0;
                 currentTranslateY = 0;
             }
 
-            function changeRuleSilently() {
-                const availableRules = ruleTypes.filter(r => r !== currentRule);
-                currentRule = availableRules[Math.floor(Math.random() * availableRules.length)];
-                consecutiveCorrect = 0; // Reiniciar cuenta
-                console.log("¡Regla cambiada silenciosamente a:", currentRule);
+            function rotarInstruccionFija() {
+                previousRule = currentRule; 
+                indiceBloqueActual++;
+                
+                if (indiceBloqueActual < secuenciaReglas.length) {
+                    currentRule = secuenciaReglas[indiceBloqueActual];
+                    ensayosEnBloqueActual = 0;
+                } else {
+                    setTimeout(showFinalReport, 800);
+                }
+            }
+
+            function processTrialResults(droppedBase, isCorrect) {
+                totalTrials++;
+                ensayosEnBloqueActual++;
+                
+                // Actualización interactiva del header 1/36
+                if(totalTrials <= totalMaxTrials) {
+                    document.getElementById('trial-counter').innerText = Math.min(totalTrials + 1, totalMaxTrials);
+                }
+
+                let isPerseverative = false;
+                if (!isCorrect) {
+                    // Evaluación del Criterio Clínico de Heaton para respuestas perseverativas
+                    if (previousRule && currentCardData[previousRule] === droppedBase[previousRule]) {
+                        isPerseverative = true;
+                        score.perseverative++;
+                    } else {
+                        score.nonPerseverative++;
+                    }
+                } else {
+                    if (indiceBloqueActual < secuenciaReglas.length) {
+                        aciertosPorInstruccion[indiceBloqueActual]++;
+                    }
+                }
+
+                showFeedback(isCorrect);
+
+                // Forzar cambio estructural estricto a las 6 ejecuciones en el bloque
+                if (ensayosEnBloqueActual >= maxEnsayosPorBloque) {
+                    rotarInstruccionFija();
+                } else if (totalTrials >= totalMaxTrials) {
+                    setTimeout(showFinalReport, 800);
+                }
             }
 
             function showFeedback(isCorrect) {
-                feedbackEl.className = 'feedback-overlay'; // Resetea animaciones previas
-                void feedbackEl.offsetWidth; // Fuerza el reflujo del DOM
+                feedbackEl.className = 'feedback-overlay';
+                void feedbackEl.offsetWidth; 
                 
                 const svgIconNS = 'xmlns="http://www.w3.org/2000/svg"';
                 if (isCorrect) {
                     feedbackEl.innerHTML = `<svg ${svgIconNS} class="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
                     feedbackEl.classList.add('feedback-correct');
                     score.correct++;
-                    consecutiveCorrect++;
-                    if (consecutiveCorrect >= 5) changeRuleSilently();
                 } else {
                     feedbackEl.innerHTML = `<svg ${svgIconNS} class="icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
                     feedbackEl.classList.add('feedback-incorrect');
                     score.incorrect++;
-                    consecutiveCorrect = 0;
                 }
                 
                 document.getElementById('score-correct').innerText = score.correct;
                 document.getElementById('score-incorrect').innerText = score.incorrect;
             }
 
-            // --- 4. Sistema Drag & Drop Táctil/Mouse ---
+            function showFinalReport() {
+                document.getElementById('main-game-layout').style.display = 'none';
+                document.getElementById('report-screen').style.display = 'flex';
+                document.body.style.touchAction = 'auto'; 
+                document.body.style.overflow = 'auto';
+
+                document.getElementById('rep-correct').innerText = score.correct;
+                document.getElementById('rep-incorrect').innerText = score.incorrect;
+                document.getElementById('rep-perseverative').innerText = score.perseverative;
+                document.getElementById('rep-non-perseverative').innerText = score.nonPerseverative;
+
+                generarGraficaClinica();
+            }
+
+            function generarGraficaClinica() {
+                const etiquetasEjeX = secuenciaReglas.map((regla, index) => `${index + 1}º (${traductorReglas[regla]})`);
+                const ctx = document.getElementById('wisconsinChart').getContext('2d');
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: etiquetasEjeX,
+                        datasets: [{
+                            label: 'Aciertos por Bloque',
+                            data: aciertosPorInstruccion,
+                            backgroundColor: 'rgba(88, 86, 214, 0.65)',
+                            borderColor: 'rgba(88, 86, 214, 1)',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            barThickness: 16
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 6,
+                                ticks: { stepSize: 1 },
+                                title: { display: true, text: 'Nº de Aciertos', font: { weight: 'bold' } }
+                            },
+                            x: {
+                                title: { display: true, text: 'Orden Aleatorizado de Reglas', font: { weight: 'bold' } },
+                                ticks: { font: { size: 9 } }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // --- 5. Motor de Control de Arrastre Táctil ---
             function getEventCoords(e) {
                 return e.type.includes('touch') ? 
                     { x: e.touches[0].clientX, y: e.touches[0].clientY } : 
@@ -359,22 +527,19 @@
             }
 
             function onDragStart(e) {
+                if (totalTrials >= totalMaxTrials) return;
                 isDragging = true;
                 activeCard.classList.add('dragging');
                 activeCard.style.transition = 'none';
-                
                 const coords = getEventCoords(e);
                 startX = coords.x - currentTranslateX;
                 startY = coords.y - currentTranslateY;
-                
-                // Feedback táctil en móviles
-                if (navigator.vibrate) navigator.vibrate(15);
+                if (navigator.vibrate) navigator.vibrate(12);
             }
 
             function onDragMove(e) {
                 if (!isDragging) return;
-                e.preventDefault(); // Previene que la pantalla baje o suba
-                
+                e.preventDefault();
                 const coords = getEventCoords(e);
                 currentTranslateX = coords.x - startX;
                 currentTranslateY = coords.y - startY;
@@ -387,11 +552,7 @@
 
             function checkCollision() {
                 const cardRect = activeCard.getBoundingClientRect();
-                const cardCenter = {
-                    x: cardRect.left + cardRect.width / 2,
-                    y: cardRect.top + cardRect.height / 2
-                };
-
+                const cardCenter = { x: cardRect.left + cardRect.width / 2, y: cardRect.top + cardRect.height / 2 };
                 const dropzones = document.querySelectorAll('.base-dropzone');
                 for (let i = 0; i < dropzones.length; i++) {
                     const baseRect = dropzones[i].getBoundingClientRect();
@@ -424,10 +585,9 @@
                     const isCorrect = currentCardData[currentRule] === droppedBase[currentRule];
                     
                     setTimeout(() => {
-                        showFeedback(isCorrect);
-                        generateNewCard();
+                        processTrialResults(droppedBase, isCorrect);
+                        if (totalTrials < totalMaxTrials) generateNewCard();
                     }, 300);
-
                 } else {
                     currentTranslateX = 0;
                     currentTranslateY = 0;
@@ -435,7 +595,6 @@
                 }
             }
 
-            // Asignación de Eventos
             activeCard.addEventListener('mousedown', onDragStart);
             document.addEventListener('mousemove', onDragMove, { passive: false });
             document.addEventListener('mouseup', onDragEnd);
@@ -444,7 +603,6 @@
             document.addEventListener('touchmove', onDragMove, { passive: false });
             document.addEventListener('touchend', onDragEnd);
 
-            // Arrancar el juego finalmente
             initGame();
         };
     </script>
