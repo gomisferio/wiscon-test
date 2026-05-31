@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wisconsin Card Sorting Test - Táctil</title>
+    <style>
+        :root {
+            --bg-color: #f2f2f7;
+            --text-color: #1c1c1e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            touch-action: none; /* Fundamental para evitar scroll accidental en táctil */
+            color: var(--text-color);
+        }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: rgba(255,255,255,0.6);
+            border-bottom: 1px solid rgba(255,255,255,0.5);
+            z-index: 10;
+        }
+
+        .score-pill {
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .aciertos { color: #28a745; }
+        .errores { color: #dc3545; }
+
+        .game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            position: relative;
+            padding: 20px 10px;
+        }
+
+        .bases-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .deck-container {
+            height: 160px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .card {
+            width: 100%;
+            aspect-ratio: 1 / 1.3;
+            max-width: 140px;
+            max-height: 182px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .draggable {
+            cursor: grab;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            z-index: 50;
+            width: 140px;
+            height: 182px;
+        }
+
+        .dragging {
+            cursor: grabbing;
+            transition: none;
+            transform: scale(1.05);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            z-index: 100;
+        }
+
+        .shapes-grid {
+            display: grid;
+            width: 80%;
+            height: 80%;
+            align-items: center;
+            justify-items: center;
+            gap: 5px;
+        }
+
+        .grid-1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+        .grid-2 { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+        .shape-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .shape-svg {
+            width: 100%;
+            height: 100%;
+            max-width: 45px;
+            max-height: 45px;
+            object-fit: contain;
+        }
+
+        /* Feedback Animation Overlay */
+        .feedback-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .feedback-correct {
+            background: rgba(52, 199, 89, 0.9);
+            box-shadow: 0 0 40px rgba(52, 199, 89, 0.6);
+            animation: popIn 0.8s ease forwards;
+        }
+
+        .feedback-incorrect {
+            background: rgba(255, 59, 48, 0.9);
+            box-shadow: 0 0 40px rgba(255, 59, 48, 0.6);
+            animation: shake 0.5s ease forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        @keyframes shake {
+            0% { transform: translate(-50%, -50%) scale(1) translateX(0); opacity: 1; }
+            20% { transform: translate(-50%, -50%) scale(1) translateX(-15px); }
+            40% { transform: translate(-50%, -50%) scale(1) translateX(15px); }
+            60% { transform: translate(-50%, -50%) scale(1) translateX(-15px); }
+            80% { transform: translate(-50%, -50%) scale(1) translateX(15px); }
+            100% { transform: translate(-50%, -50%) scale(1) translateX(0); opacity: 0; }
+        }
+
+        svg.icon { width: 80px; height: 80px; fill: white; }
+
+        @media (orientation: landscape) {
+            .bases-container { gap: 20px; }
+            .card { max-width: 120px; max-height: 156px; }
+            .draggable { width: 120px; height: 156px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="score-pill glass aciertos">Aciertos: <span id="score-correct">0</span></div>
+        <div class="score-pill glass errores">Errores: <span id="score-incorrect">0</span></div>
+    </div>
+
+    <div class="game-area" id="game-area">
+        <div class="bases-container" id="bases">
+            </div>
+
+        <div class="deck-container">
+            <div class="card draggable" id="active-card">
+                </div>
+        </div>
+
+        <div id="feedback" class="feedback-overlay"></div>
+    </div>
+
+    <script>
+        // Envolvemos todo en window.onload para asegurar que el HTML esté listo
+        window.onload = function() {
+            
+            // --- 1. Definición del Paradigma y Variables ---
+            const colors = { red: '#FF3B30', blue: '#007AFF', green: '#34C759', yellow: '#FFCC00' };
+            const shapes = ['triangle', 'star', 'square', 'circle'];
+            const attributes = {
+                colors: Object.keys(colors),
+                shapes: shapes,
+                quantities: [1, 2, 3, 4]
+            };
+
+            const ruleTypes = ['color', 'shape', 'quantity'];
+            let currentRule = ruleTypes[Math.floor(Math.random() * ruleTypes.length)];
+            let consecutiveCorrect = 0;
+            let score = { correct: 0, incorrect: 0 };
+            
+            const basesData = [
+                { id: 0, color: 'red', shape: 'triangle', quantity: 1 },
+                { id: 1, color: 'green', shape: 'star', quantity: 2 },
+                { id: 2, color: 'yellow', shape: 'square', quantity: 3 },
+                { id: 3, color: 'blue', shape: 'circle', quantity: 4 }
+            ];
+
+            let currentCardData = {};
+
+            // Elementos del DOM
+            const activeCard = document.getElementById('active-card');
+            const basesContainer = document.getElementById('bases');
+            const feedbackEl = document.getElementById('feedback');
+            
+            // Variables Drag & Drop
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let currentTranslateX = 0;
+            let currentTranslateY = 0;
+            let animationFrameId;
+
+            // --- 2. Utilidades Gráficas (SVG) ---
+            function getShapeSVG(shape, colorKey) {
+                const hexColor = colors[colorKey];
+                // El atributo xmlns es CRÍTICO para que los navegadores lo pinten correctamente al inyectar código
+                const svgNS = 'xmlns="http://www.w3.org/2000/svg"';
+                
+                switch (shape) {
+                    case 'circle':
+                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="${hexColor}"/></svg>`;
+                    case 'square':
+                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" rx="15" fill="${hexColor}"/></svg>`;
+                    case 'triangle':
+                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,10 95,90 5,90" fill="${hexColor}" stroke-linejoin="round"/></svg>`;
+                    case 'star':
+                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 67,54 78,85 50,65 22,85 33,54 5,35 39,35" fill="${hexColor}"/></svg>`;
+                }
+            }
+
+            function renderCard(element, data) {
+                element.innerHTML = '';
+                const gridContainer = document.createElement('div');
+                gridContainer.className = `shapes-grid grid-${data.quantity}`;
+                
+                for (let i = 0; i < data.quantity; i++) {
+                    const shapeWrapper = document.createElement('div');
+                    shapeWrapper.className = 'shape-wrapper';
+                    shapeWrapper.innerHTML = getShapeSVG(data.shape, data.color);
+                    
+                    // Centrar el 3º elemento abajo si la cantidad es 3
+                    if (data.quantity === 3 && i === 2) {
+                        shapeWrapper.style.gridColumn = "1 / -1";
+                    }
+                    
+                    gridContainer.appendChild(shapeWrapper);
+                }
+                element.appendChild(gridContainer);
+            }
+
+            // --- 3. Lógica del Juego ---
+            function initGame() {
+                basesContainer.innerHTML = ''; // Limpiar por si acaso
+                basesData.forEach(base => {
+                    const baseEl = document.createElement('div');
+                    baseEl.className = 'card glass base-dropzone';
+                    baseEl.id = `base-${base.id}`;
+                    renderCard(baseEl, base);
+                    basesContainer.appendChild(baseEl);
+                });
+                generateNewCard();
+                console.log("Regla inicial oculta:", currentRule);
+            }
+
+            function generateNewCard() {
+                currentCardData = {
+                    color: attributes.colors[Math.floor(Math.random() * 4)],
+                    shape: attributes.shapes[Math.floor(Math.random() * 4)],
+                    quantity: attributes.quantities[Math.floor(Math.random() * 4)]
+                };
+                
+                renderCard(activeCard, currentCardData);
+                
+                // Resetear posición de la tarjeta arrastrable
+                activeCard.style.transform = 'translate(0px, 0px)';
+                activeCard.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                currentTranslateX = 0;
+                currentTranslateY = 0;
+            }
+
+            function changeRuleSilently() {
+                const availableRules = ruleTypes.filter(r => r !== currentRule);
+                currentRule = availableRules[Math.floor(Math.random() * availableRules.length)];
+                consecutiveCorrect = 0; // Reiniciar cuenta
+                console.log("¡Regla cambiada silenciosamente a:", currentRule);
+            }
+
+            function showFeedback(isCorrect) {
+                feedbackEl.className = 'feedback-overlay'; // Resetea animaciones previas
+                void feedbackEl.offsetWidth; // Fuerza el reflujo del DOM
+                
+                const svgIconNS = 'xmlns="http://www.w3.org/2000/svg"';
+                if (isCorrect) {
+                    feedbackEl.innerHTML = `<svg ${svgIconNS} class="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+                    feedbackEl.classList.add('feedback-correct');
+                    score.correct++;
+                    consecutiveCorrect++;
+                    if (consecutiveCorrect >= 5) changeRuleSilently();
+                } else {
+                    feedbackEl.innerHTML = `<svg ${svgIconNS} class="icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
+                    feedbackEl.classList.add('feedback-incorrect');
+                    score.incorrect++;
+                    consecutiveCorrect = 0;
+                }
+                
+                document.getElementById('score-correct').innerText = score.correct;
+                document.getElementById('score-incorrect').innerText = score.incorrect;
+            }
+
+            // --- 4. Sistema Drag & Drop Táctil/Mouse ---
+            function getEventCoords(e) {
+                return e.type.includes('touch') ? 
+                    { x: e.touches[0].clientX, y: e.touches[0].clientY } : 
+                    { x: e.clientX, y: e.clientY };
+            }
+
+            function onDragStart(e) {
+                isDragging = true;
+                activeCard.classList.add('dragging');
+                activeCard.style.transition = 'none';
+                
+                const coords = getEventCoords(e);
+                startX = coords.x - currentTranslateX;
+                startY = coords.y - currentTranslateY;
+                
+                // Feedback táctil en móviles
+                if (navigator.vibrate) navigator.vibrate(15);
+            }
+
+            function onDragMove(e) {
+                if (!isDragging) return;
+                e.preventDefault(); // Previene que la pantalla baje o suba
+                
+                const coords = getEventCoords(e);
+                currentTranslateX = coords.x - startX;
+                currentTranslateY = coords.y - startY;
+                
+                if(animationFrameId) cancelAnimationFrame(animationFrameId);
+                animationFrameId = requestAnimationFrame(() => {
+                    activeCard.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(1.05)`;
+                });
+            }
+
+            function checkCollision() {
+                const cardRect = activeCard.getBoundingClientRect();
+                const cardCenter = {
+                    x: cardRect.left + cardRect.width / 2,
+                    y: cardRect.top + cardRect.height / 2
+                };
+
+                const dropzones = document.querySelectorAll('.base-dropzone');
+                for (let i = 0; i < dropzones.length; i++) {
+                    const baseRect = dropzones[i].getBoundingClientRect();
+                    if (cardCenter.x >= baseRect.left && cardCenter.x <= baseRect.right &&
+                        cardCenter.y >= baseRect.top && cardCenter.y <= baseRect.bottom) {
+                        return basesData[i];
+                    }
+                }
+                return null;
+            }
+
+            function onDragEnd(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                activeCard.classList.remove('dragging');
+                activeCard.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+                const droppedBase = checkCollision();
+
+                if (droppedBase) {
+                    const baseEl = document.getElementById(`base-${droppedBase.id}`);
+                    const baseRect = baseEl.getBoundingClientRect();
+                    const cardRect = activeCard.getBoundingClientRect();
+                    
+                    const snapX = currentTranslateX + (baseRect.left - cardRect.left) + (baseRect.width - cardRect.width)/2;
+                    const snapY = currentTranslateY + (baseRect.top - cardRect.top) + (baseRect.height - cardRect.height)/2;
+                    
+                    activeCard.style.transform = `translate(${snapX}px, ${snapY}px) scale(1)`;
+
+                    const isCorrect = currentCardData[currentRule] === droppedBase[currentRule];
+                    
+                    setTimeout(() => {
+                        showFeedback(isCorrect);
+                        generateNewCard();
+                    }, 300);
+
+                } else {
+                    currentTranslateX = 0;
+                    currentTranslateY = 0;
+                    activeCard.style.transform = `translate(0px, 0px) scale(1)`;
+                }
+            }
+
+            // Asignación de Eventos
+            activeCard.addEventListener('mousedown', onDragStart);
+            document.addEventListener('mousemove', onDragMove, { passive: false });
+            document.addEventListener('mouseup', onDragEnd);
+
+            activeCard.addEventListener('touchstart', onDragStart, { passive: false });
+            document.addEventListener('touchmove', onDragMove, { passive: false });
+            document.addEventListener('touchend', onDragEnd);
+
+            // Arrancar el juego finalmente
+            initGame();
+        };
+    </script>
+</body>
+</html>

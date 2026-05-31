@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Test de Wisconsin - Instrucciones</title>
+    <style>
+        :root {
+            --bg-color: #f2f2f7;
+            --text-color: #1c1c1e;
+            --primary-color: #5856d6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-color);
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* Glassmorphism coincidente con la estética del test */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            padding: 30px;
+            border-radius: 24px;
+            max-width: 550px;
+            width: 90%;
+            text-align: center;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            color: #2c2c2e;
+            font-weight: 700;
+        }
+
+        .instructions {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .instructions p {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            color: #3a3a3c;
+        }
+
+        .instructions p:last-child {
+            margin-bottom: 0;
+        }
+
+        .highlight {
+            font-weight: 600;
+            color: #34495e;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+
+        .btn-continue {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(88, 86, 214, 0.3);
+            transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+            max-width: 250px;
+        }
+
+        .btn-continue:hover {
+            background: #4341c2;
+            box-shadow: 0 6px 20px rgba(88, 86, 214, 0.4);
+        }
+
+        .btn-continue:active {
+            transform: scale(0.97);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glass-card">
+        <h1>Test de Clasificación de Tarjetas</h1>
+        
+        <div class="instructions">
+            <p>Su tarea consiste en <span class="highlight">asociar la tarjeta central</span> con una de las cuatro tarjetas de referencia situadas en la parte superior.</p>
+            
+            <p>Para ello, arrastre y suelte la tarjeta sobre la base que considere correcta.</p>
+            
+            <p>Las tarjetas se pueden clasificar según tres criterios: <span class="highlight">el color</span>, <span class="highlight">la forma</span> o <span class="highlight">la cantidad</span> de elementos.</p>
+            
+            <p><strong>Regla del test:</strong> No se le dirá cuál es el criterio correcto. El sistema solo le indicará si su decisión es correcta o incorrecta. Utilice esa información para deducir la norma en cada momento, teniendo en cuenta que esta **puede cambiar** a lo largo de la prueba.</p>
+        </div>
+
+        <button class="btn-continue" onclick="window.location.href='wisconsin.html'">
+            Continuar
+        </button>
+    </div>
+
+</body>
+</html>
