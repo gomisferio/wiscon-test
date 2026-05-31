@@ -47,7 +47,7 @@
             justify-content: center;
             align-items: center;
             padding: 15px 20px;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: bold;
             background: rgba(255,255,255,0.6);
             border-bottom: 1px solid rgba(255,255,255,0.5);
@@ -55,7 +55,7 @@
         }
 
         .score-pill {
-            padding: 6px 25px;
+            padding: 8px 25px;
             border-radius: 20px;
         }
 
@@ -64,19 +64,19 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; 
+            justify-content: space-around; 
             align-items: center;
             position: relative;
-            padding: 4vh 10vw 8vh 10vw; /* Márgenes fluidos que empujan los elementos */
+            padding: 20px 10px;
             height: calc(100vh - 60px);
         }
 
         .bases-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 40px; /* Separación amplia entre las 4 tarjetas superiores */
+            gap: 10px; /* Separación amplia entre las 4 tarjetas superiores */
             width: 100%;
-            max-width: 750px;
+            max-width: 800px;
             justify-items: center;
         }
 
@@ -98,6 +98,7 @@
 
         /* CONTENEDOR DE LA CARTA INFERIOR */
         .deck-container {
+            height: 160px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -105,22 +106,26 @@
         }
 
         /* TAMAÑO DE TARJETAS PROPORCIONAL A LA IMAGEN */
-        .card, .base-dropzone {
-            width: 115px;
-            height: 155px;
+        .card {
+            width: 100%;
+            aspect-ratio: 1 / 1.3;
+            max-width: 140px;
+            max-height: 182px;
             border-radius: 16px;
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .draggable {
             cursor: grab;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             z-index: 50;
+            width: 140px;
+            height: 182px;
         }
 
         .dragging {
@@ -133,11 +138,11 @@
 
         .shapes-grid {
             display: grid;
-            width: 75%;
-            height: 75%;
+            width: 80%;
+            height: 80%;
             align-items: center;
             justify-items: center;
-            gap: 8px;
+            gap: 5px;
         }
 
         .grid-1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
@@ -156,19 +161,19 @@
         .shape-svg {
             width: 100%;
             height: 100%;
-            max-width: 38px;
-            max-height: 38px;
+            max-width: 45px;
+            max-height: 45px;
             object-fit: contain;
         }
 
         /* Feedback Animation Overlays */
         .feedback-overlay {
             position: absolute;
-            top: 45%;
+            top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 140px;
-            height: 140px;
+            width: 150px;
+            height: 150px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
@@ -288,20 +293,19 @@
 
     <div id="report-screen" class="report-container">
         <div class="report-card">
-            <h2>Resultados del Perfil Cognitivo</h2>
+            <h2>Resultados de la Prueba</h2>
             <div class="metric-row"><span>Total de Ensayos Evaluados:</span> <span class="metric-val" id="rep-total">36</span></div>
             <div class="metric-row"><span>Aciertos Totales:</span> <span class="metric-val" style="color: #28a745;" id="rep-correct">0</span></div>
             <div class="metric-row"><span>Errores Totales:</span> <span class="metric-val" style="color: #dc3545;" id="rep-incorrect">0</span></div>
             <div class="metric-row"><span>Errores Perseverativos:</span> <span class="metric-val" id="rep-perseverative">0</span></div>
             <div class="metric-row"><span>Errores No Perseverativos:</span> <span class="metric-val" id="rep-non-perseverative">0</span></div>
-            <div class="metric-row"><span>Bloques de Regla Ejecutados:</span> <span class="metric-val" id="rep-categories">6/6</span></div>
             
             <div class="chart-box">
                 <canvas id="wisconsinChart"></canvas>
             </div>
 
             <button onclick="window.location.reload()" style="margin-top: 25px; background: #5856d6; color: white; border: none; padding: 14px 30px; font-weight: bold; font-size: 1.1rem; border-radius: 14px; cursor: pointer; width: 100%;">
-                Repetir Evaluación
+                Repetir la prueba
             </button>
         </div>
     </div>
