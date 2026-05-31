@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wisconsin Card Sorting Test - Clínico Avanzado</title>
-    <!-- Librería Chart.js para renderizar la gráfica de resultados al final -->
+    <title>Wisconsin Card Sorting Test - 36 Ensayos Fijos</title>
+    <!-- Librería Chart.js para renderizar la gráfica de resultados -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -79,7 +79,7 @@
             margin-bottom: 3vh;
         }
 
-        /* Zona medio-baja ergonómica para la carta activa */
+        /* Ajuste: Mazo bajado ~1cm más con respecto al borde inferior */
         .deck-container {
             flex: 1;
             display: flex;
@@ -87,7 +87,7 @@
             align-items: center;
             width: 100%;
             margin-top: auto; 
-            margin-bottom: 8vh;
+            margin-bottom: 4vh; /* Ajuste ergonómico más bajo */
         }
 
         .card {
@@ -150,10 +150,24 @@
             object-fit: contain;
         }
 
-        /* Feedback Animation Overlays */
+        /* Texto corporativo inferior */
+        .footer-brand {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            color: rgba(28, 28, 30, 0.45);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* Feedback Overlays */
         .feedback-overlay {
             position: absolute;
-            top: 45%;
+            top: 42%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0);
             width: 140px;
@@ -245,7 +259,7 @@
             .bases-container { gap: 15px; margin-bottom: 1vh; }
             .card { max-width: 110px; max-height: 143px; }
             .draggable { width: 110px; height: 143px; }
-            .deck-container { margin-bottom: 2vh; }
+            .deck-container { margin-bottom: 3vh; }
         }
     </style>
 </head>
@@ -267,6 +281,9 @@
             </div>
 
             <div id="feedback" class="feedback-overlay"></div>
+            
+            <!-- Firma de marca inyectada al fondo -->
+            <div class="footer-brand">gomisferio.com</div>
         </div>
     </div>
 
@@ -279,7 +296,7 @@
             <div class="metric-row"><span>Errores Totales:</span> <span class="metric-val" style="color: #dc3545;" id="rep-incorrect">0</span></div>
             <div class="metric-row"><span>Errores Perseverativos:</span> <span class="metric-val" id="rep-perseverative">0</span></div>
             <div class="metric-row"><span>Errores No Perseverativos:</span> <span class="metric-val" id="rep-non-perseverative">0</span></div>
-            <div class="metric-row"><span>Bloques Completados:</span> <span class="metric-val" id="rep-categories">6/6</span></div>
+            <div class="metric-row"><span>Bloques de Regla Ejecutados:</span> <span class="metric-val" id="rep-categories">6/6</span></div>
             
             <div class="chart-box">
                 <canvas id="wisconsinChart"></canvas>
@@ -294,29 +311,8 @@
     <script>
         window.onload = function() {
             
-            // --- 1. Definición de Estímulos y Atributos Básicos ---
-            const colors = { red: '#FF3B30', blue: '#007AFF', green: '#34C759', yellow: '#FFCC00' };
-            const shapes = ['triangle', 'star', 'square', 'circle'];
-            const attributes = { colors: Object.keys(colors), shapes: shapes, quantities: [1, 2, 3, 4] };
-
-            // --- 2. Motor de Aleatorización por Rondas (Estructura de 36 Ensayos) ---
-            function generarSecuenciaBloques() {
-                const base = ['color', 'shape', 'quantity'];
-                // Mezcla aleatoria de elementos (Algoritmo Fisher-Yates)
-                const shuffle = (array) => {
-                    for (let i = array.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [array[i], array[j]] = [array[j], array[i]];
-                    }
-                    return array;
-                };
-                // Creamos dos rondas independientes con sus bloques mezclados de forma separada
-                const ronda1 = shuffle([...base]);
-                const ronda2 = shuffle([...base]);
-                return [...ronda1, ...ronda2];
-            }
-
-            const secuenciaReglas = generarSecuenciaBloques();
+            // --- 1. Paradigma Estricto Estático (Color -> Forma -> Cantidad x2) ---
+            const secuenciaReglas = ['color', 'shape', 'quantity', 'color', 'shape', 'quantity'];
             let indiceBloqueActual = 0;
             let currentRule = secuenciaReglas[indiceBloqueActual];
             let previousRule = null;
@@ -325,7 +321,10 @@
             const maxEnsayosPorBloque = 6;
             const totalMaxTrials = 36; 
 
-            // Métricas y Contadores Estadísticos
+            const colors = { red: '#FF3B30', blue: '#007AFF', green: '#34C759', yellow: '#FFCC00' };
+            const shapes = ['triangle', 'star', 'square', 'circle'];
+            const attributes = { colors: Object.keys(colors), shapes: shapes, quantities: [1, 2, 3, 4] };
+
             let score = { correct: 0, incorrect: 0, perseverative: 0, nonPerseverative: 0 };
             let totalTrials = 0;
             let aciertosPorInstruccion = Array(6).fill(0);
@@ -334,13 +333,12 @@
                 { id: 0, color: 'red', shape: 'triangle', quantity: 1 },
                 { id: 1, color: 'green', shape: 'star', quantity: 2 },
                 { id: 2, color: 'yellow', shape: 'square', quantity: 3 },
-                { id: 3, blue: 'blue', color: 'blue', shape: 'circle', quantity: 4 } // Corregida consistencia
+                { id: 3, color: 'blue', shape: 'circle', quantity: 4 }
             ];
 
             let currentCardData = {};
             const traductorReglas = { 'color': 'Color', 'shape': 'Forma', 'quantity': 'Cantidad' };
 
-            // Elementos del DOM
             const activeCard = document.getElementById('active-card');
             const basesContainer = document.getElementById('bases');
             const feedbackEl = document.getElementById('feedback');
@@ -350,7 +348,7 @@
             let currentTranslateX = 0, currentTranslateY = 0;
             let animationFrameId;
 
-            // --- 3. Utilidades Gráficas (SVG) ---
+            // --- 2. Utilidades Gráficas (SVG) ---
             function getShapeSVG(shape, colorKey) {
                 const hexColor = colors[colorKey];
                 const svgNS = 'xmlns="http://www.w3.org/2000/svg"';
@@ -376,7 +374,7 @@
                 element.appendChild(gridContainer);
             }
 
-            // --- 4. Lógica Funcional del Paradigma ---
+            // --- 3. Lógica Funcional ---
             function initGame() {
                 basesContainer.innerHTML = '';
                 basesData.forEach(base => {
@@ -414,18 +412,17 @@
                 }
             }
 
+            // Registro métrico y análisis clínico de Heaton (Perseveraciones)
             function processTrialResults(droppedBase, isCorrect) {
                 totalTrials++;
                 ensayosEnBloqueActual++;
                 
-                // Actualización interactiva del header 1/36
                 if(totalTrials <= totalMaxTrials) {
                     document.getElementById('trial-counter').innerText = Math.min(totalTrials + 1, totalMaxTrials);
                 }
 
                 let isPerseverative = false;
                 if (!isCorrect) {
-                    // Evaluación del Criterio Clínico de Heaton para respuestas perseverativas
                     if (previousRule && currentCardData[previousRule] === droppedBase[previousRule]) {
                         isPerseverative = true;
                         score.perseverative++;
@@ -440,7 +437,6 @@
 
                 showFeedback(isCorrect);
 
-                // Forzar cambio estructural estricto a las 6 ejecuciones en el bloque
                 if (ensayosEnBloqueActual >= maxEnsayosPorBloque) {
                     rotarInstruccionFija();
                 } else if (totalTrials >= totalMaxTrials) {
@@ -511,7 +507,7 @@
                                 title: { display: true, text: 'Nº de Aciertos', font: { weight: 'bold' } }
                             },
                             x: {
-                                title: { display: true, text: 'Orden Aleatorizado de Reglas', font: { weight: 'bold' } },
+                                title: { display: true, text: 'Cronología de Instrucciones Ejecutadas', font: { weight: 'bold' } },
                                 ticks: { font: { size: 9 } }
                             }
                         }
@@ -519,7 +515,7 @@
                 });
             }
 
-            // --- 5. Motor de Control de Arrastre Táctil ---
+            // --- 4. Sistema Drag & Drop Táctil ---
             function getEventCoords(e) {
                 return e.type.includes('touch') ? 
                     { x: e.touches[0].clientX, y: e.touches[0].clientY } : 
