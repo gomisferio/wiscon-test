@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wisconsin Card Sorting Test - Clínico</title>
+    <title>Wisconsin Card Sorting Test - Clínico Avanzado</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #f2f2f7;
@@ -21,10 +22,10 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-x: hidden;
             touch-action: none;
             color: var(--text-color);
         }
@@ -65,6 +66,7 @@
             align-items: center;
             position: relative;
             padding: 20px 10px;
+            height: calc(100vh - 70px);
         }
 
         .bases-container {
@@ -143,7 +145,7 @@
             object-fit: contain;
         }
 
-        /* Feedback Animation Overlay */
+        /* Feedback Overlays */
         .feedback-overlay {
             position: absolute;
             top: 50%;
@@ -189,38 +191,50 @@
 
         svg.icon { width: 80px; height: 80px; fill: white; }
 
-        /* Report Screen Styles */
+        /* Report Screen */
         .report-container {
             display: none;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            padding: 20px;
+            padding: 30px 15px;
+            width: 100%;
+            min-height: 100vh;
             overflow-y: auto;
+            user-select: text;
+            -webkit-user-select: text;
         }
 
         .report-card {
-            background: rgba(255, 255, 255, 0.85);
-            padding: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 25px;
             border-radius: 24px;
-            max-width: 500px;
+            max-width: 600px;
             width: 100%;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             text-align: center;
+            margin-bottom: 20px;
         }
 
-        .report-card h2 { margin-bottom: 20px; color: #1c1c1e; }
+        .report-card h2 { margin-bottom: 20px; color: #1c1c1e; font-size: 1.5rem; }
         
         .metric-row {
             display: flex;
             justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.08);
-            font-size: 1.1rem;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            font-size: 1.05rem;
         }
         .metric-row:last-child { border-bottom: none; }
         .metric-val { font-weight: bold; color: #5856d6; }
+
+        .chart-box {
+            width: 100%;
+            margin-top: 25px;
+            padding: 10px;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
 
         @media (orientation: landscape) {
             .bases-container { gap: 20px; }
@@ -231,8 +245,7 @@
 </head>
 <body>
 
-    <!-- Area de Juego -->
-    <div id="main-game-layout" style="display: flex; flex-direction: column; height: 100vh; width: 100%;">
+    <div id="main-game-layout" style="display: flex; flex-direction: column; width: 100%;">
         <div class="header">
             <div class="score-pill glass aciertos">Aciertos: <span id="score-correct">0</span></div>
             <div class="score-pill glass errores">Errores: <span id="score-incorrect">0</span></div>
@@ -249,18 +262,21 @@
         </div>
     </div>
 
-    <!-- Informe Clínico Final -->
     <div id="report-screen" class="report-container">
         <div class="report-card">
             <h2>Resultados del Perfil Cognitivo</h2>
-            <div class="metric-row"><span>Total de Ensayos:</span> <span class="metric-val" id="rep-total">0</span></div>
+            <div class="metric-row"><span>Total de Ensayos Realizados:</span> <span class="metric-val" id="rep-total">0</span></div>
             <div class="metric-row"><span>Aciertos Totales:</span> <span class="metric-val" style="color: #28a745;" id="rep-correct">0</span></div>
             <div class="metric-row"><span>Errores Totales:</span> <span class="metric-val" style="color: #dc3545;" id="rep-incorrect">0</span></div>
             <div class="metric-row"><span>Errores Perseverativos:</span> <span class="metric-val" id="rep-perseverative">0</span></div>
             <div class="metric-row"><span>Errores No Perseverativos:</span> <span class="metric-val" id="rep-non-perseverative">0</span></div>
-            <div class="metric-row"><span>Cambios de Instrucción Realizados:</span> <span class="metric-val" id="rep-categories">0/6</span></div>
+            <div class="metric-row"><span>Cambios de Instrucción Completados:</span> <span class="metric-val" id="rep-categories">0/12</span></div>
             
-            <button onclick="window.location.reload()" style="margin-top: 25px; background: #5856d6; color: white; border: none; padding: 12px 30px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%;">
+            <div class="chart-box">
+                <canvas id="wisconsinChart"></canvas>
+            </div>
+
+            <button onclick="window.location.reload()" style="margin-top: 25px; background: #5856d6; color: white; border: none; padding: 14px 30px; font-weight: bold; font-size: 1.1rem; border-radius: 14px; cursor: pointer; width: 100%;">
                 Repetir Evaluación
             </button>
         </div>
@@ -269,7 +285,7 @@
     <script>
         window.onload = function() {
             
-            // --- Variables del Paradigma ---
+            // --- Parámetros de Estímulos ---
             const colors = { red: '#FF3B30', blue: '#007AFF', green: '#34C759', yellow: '#FFCC00' };
             const shapes = ['triangle', 'star', 'square', 'circle'];
             const attributes = { colors: Object.keys(colors), shapes: shapes, quantities: [1, 2, 3, 4] };
@@ -280,12 +296,14 @@
             
             let consecutiveCorrect = 0;
             let completedCategories = 0;
-            const maxCategorias = 6; // MODIFICADO: Ahora se detiene exactamente a los 6 cambios de instrucción
+            const maxCategorias = 12; // MODIFICADO: Aumentado al doble el número de cambios para terminar
 
-            // Contadores y Registro Clínico
+            // Registro Métrico y Clínico por Categoría
             let score = { correct: 0, incorrect: 0, perseverative: 0, nonPerseverative: 0 };
             let totalTrials = 0;
-            let trialHistory = [];
+            
+            // Estructura para registrar cuántos aciertos ocurren dentro de cada bloque de instrucción
+            let aciertosPorInstruccion = Array(maxCategorias).fill(0);
 
             const basesData = [
                 { id: 0, color: 'red', shape: 'triangle', quantity: 1 },
@@ -301,13 +319,19 @@
             const basesContainer = document.getElementById('bases');
             const feedbackEl = document.getElementById('feedback');
             
-            // Drag & Drop Coords
             let isDragging = false;
             let startX = 0, startY = 0;
             let currentTranslateX = 0, currentTranslateY = 0;
             let animationFrameId;
 
-            // --- Generador de Formas SVG ---
+            // --- Traductor de etiquetas para la gráfica ---
+            const traductorReglas = { 'color': 'Color', 'shape': 'Forma', 'quantity': 'Cantidad' };
+            let registroNombresReglas = []; 
+
+            // Registrar el nombre de la primera regla inicial
+            registroNombresReglas.push(traductorReglas[currentRule]);
+
+            // --- Generador de Gráficos SVG Internos ---
             function getShapeSVG(shape, colorKey) {
                 const hexColor = colors[colorKey];
                 const svgNS = 'xmlns="http://www.w3.org/2000/svg"';
@@ -333,7 +357,6 @@
                 element.appendChild(gridContainer);
             }
 
-            // --- Lógica del Test ---
             function initGame() {
                 basesContainer.innerHTML = '';
                 basesData.forEach(base => {
@@ -366,9 +389,13 @@
                 consecutiveCorrect = 0;
                 completedCategories++;
 
-                // Al llegar a los 6 cambios estructurales, se lanza la pantalla final
+                // Si no hemos llegado al final, guardamos el nombre de la nueva instrucción activa
+                if (completedCategories < maxCategorias) {
+                    registroNombresReglas.push(traductorReglas[currentRule]);
+                }
+
                 if (completedCategories >= maxCategorias) {
-                    setTimeout(showFinalReport, 1000);
+                    setTimeout(showFinalReport, 800);
                 }
             }
 
@@ -383,16 +410,12 @@
                     } else {
                         score.nonPerseverative++;
                     }
+                } else {
+                    // Si el ensayo es correcto, sumamos un acierto a la instrucción del bloque actual
+                    if (completedCategories < maxCategorias) {
+                        aciertosPorInstruccion[completedCategories]++;
+                    }
                 }
-
-                trialHistory.push({
-                    trial: totalTrials,
-                    rule: currentRule,
-                    card: {...currentCardData},
-                    baseElegida: {...droppedBase},
-                    correct: isCorrect,
-                    perseverative: isPerseverative
-                });
 
                 showFeedback(isCorrect);
             }
@@ -420,18 +443,65 @@
             }
 
             function showFinalReport() {
+                // Intercambio de pantallas fluidas
                 document.getElementById('main-game-layout').style.display = 'none';
                 document.getElementById('report-screen').style.display = 'flex';
+                document.body.style.touchAction = 'auto'; // Permitir scroll vertical en los resultados
+                document.body.style.overflow = 'auto';
 
+                // Rellenar métricas escritas
                 document.getElementById('rep-total').innerText = totalTrials;
                 document.getElementById('rep-correct').innerText = score.correct;
                 document.getElementById('rep-incorrect').innerText = score.incorrect;
                 document.getElementById('rep-perseverative').innerText = score.perseverative;
                 document.getElementById('rep-non-perseverative').innerText = score.nonPerseverative;
                 document.getElementById('rep-categories').innerText = `${completedCategories}/${maxCategorias}`;
+
+                // Generar la gráfica analítica de barras mediante Chart.js
+                generarGraficaClinica();
             }
 
-            // --- Drag & Drop Engine (Táctil/Mouse) ---
+            function generarGraficaClinica() {
+                // Mapeo dinámico de etiquetas de eje X (ej: "1º: Color", "2º: Forma"...)
+                const etiquetasEjeX = registroNombresReglas.map((nombre, index) => `${index + 1}º (${nombre})`);
+                const ctx = document.getElementById('wisconsinChart').getContext('2d');
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: etiquetasEjeX,
+                        datasets: [{
+                            label: 'Aciertos por Bloque de Regla',
+                            data: aciertosPorInstruccion,
+                            backgroundColor: 'rgba(88, 86, 214, 0.65)',
+                            borderColor: 'rgba(88, 86, 214, 1)',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            barThickness: 20
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, precision: 0 },
+                                title: { display: true, text: 'Nº de Aciertos', font: { weight: 'bold' } }
+                            },
+                            x: {
+                                title: { display: true, text: 'Orden de Instrucciones', font: { weight: 'bold' } },
+                                ticks: { font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // --- Controlador Táctil y Ratón de Arrastre ---
             function getEventCoords(e) {
                 return e.type.includes('touch') ? 
                     { x: e.touches[0].clientX, y: e.touches[0].clientY } : 
