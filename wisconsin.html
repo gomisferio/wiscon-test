@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wisconsin Card Sorting Test - Táctil</title>
+    <title>Wisconsin Card Sorting Test - Clínico</title>
     <style>
         :root {
             --bg-color: #f2f2f7;
@@ -25,7 +25,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            touch-action: none; /* Fundamental para evitar scroll accidental en táctil */
+            touch-action: none;
             color: var(--text-color);
         }
 
@@ -189,6 +189,39 @@
 
         svg.icon { width: 80px; height: 80px; fill: white; }
 
+        /* Report Screen Styles */
+        .report-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .report-card {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 30px;
+            border-radius: 24px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+
+        .report-card h2 { margin-bottom: 20px; color: #1c1c1e; }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            font-size: 1.1rem;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-val { font-weight: bold; color: #5856d6; }
+
         @media (orientation: landscape) {
             .bases-container { gap: 20px; }
             .card { max-width: 120px; max-height: 156px; }
@@ -198,41 +231,60 @@
 </head>
 <body>
 
-    <div class="header">
-        <div class="score-pill glass aciertos">Aciertos: <span id="score-correct">0</span></div>
-        <div class="score-pill glass errores">Errores: <span id="score-incorrect">0</span></div>
-    </div>
-
-    <div class="game-area" id="game-area">
-        <div class="bases-container" id="bases">
-            </div>
-
-        <div class="deck-container">
-            <div class="card draggable" id="active-card">
-                </div>
+    <div id="main-game-layout" style="display: flex; flex-direction: column; height: 100vh; width: 100%;">
+        <div class="header">
+            <div class="score-pill glass aciertos">Aciertos: <span id="score-correct">0</span></div>
+            <div class="score-pill glass errores">Errores: <span id="score-incorrect">0</span></div>
         </div>
 
-        <div id="feedback" class="feedback-overlay"></div>
+        <div class="game-area" id="game-area">
+            <div class="bases-container" id="bases"></div>
+
+            <div class="deck-container">
+                <div class="card draggable" id="active-card"></div>
+            </div>
+
+            <div id="feedback" class="feedback-overlay"></div>
+        </div>
+    </div>
+
+    <div id="report-screen" class="report-container">
+        <div class="report-card">
+            <h2>Resultados del Perfil Cognitivo</h2>
+            <div class="metric-row"><span>Total de Ensayos:</span> <span class="metric-val" id="rep-total">0</span></div>
+            <div class="metric-row"><span>Aciertos Totales:</span> <span class="metric-val" style="color: #28a745;" id="rep-correct">0</span></div>
+            <div class="metric-row"><span>Errores Totales:</span> <span class="metric-val" style="color: #dc3545;" id="rep-incorrect">0</span></div>
+            <div class="metric-row"><span>Errores Perseverativos:</span> <span class="metric-val" id="rep-perseverative">0</span></div>
+            <div class="metric-row"><span>Errores No Perseverativos:</span> <span class="metric-val" id="rep-non-perseverative">0</span></div>
+            <div class="metric-row"><span>Categorías Completadas:</span> <span class="metric-val" id="rep-categories">0/3</span></div>
+            
+            <button onclick="window.location.reload()" style="margin-top: 25px; background: #5856d6; color: white; border: none; padding: 12px 30px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%;">
+                Repetir Evaluación
+            </button>
+        </div>
     </div>
 
     <script>
-        // Envolvemos todo en window.onload para asegurar que el HTML esté listo
         window.onload = function() {
             
-            // --- 1. Definición del Paradigma y Variables ---
+            // --- Variables del Paradigma ---
             const colors = { red: '#FF3B30', blue: '#007AFF', green: '#34C759', yellow: '#FFCC00' };
             const shapes = ['triangle', 'star', 'square', 'circle'];
-            const attributes = {
-                colors: Object.keys(colors),
-                shapes: shapes,
-                quantities: [1, 2, 3, 4]
-            };
+            const attributes = { colors: Object.keys(colors), shapes: shapes, quantities: [1, 2, 3, 4] };
 
             const ruleTypes = ['color', 'shape', 'quantity'];
             let currentRule = ruleTypes[Math.floor(Math.random() * ruleTypes.length)];
-            let consecutiveCorrect = 0;
-            let score = { correct: 0, incorrect: 0 };
+            let previousRule = null; // Guardará la regla previa tras un cambio silente
             
+            let consecutiveCorrect = 0;
+            let completedCategories = 0;
+            const maxCategorias = 3; // Criterio de parada clínica
+
+            // Contadores y Registro Clínico
+            let score = { correct: 0, incorrect: 0, perseverative: 0, nonPerseverative: 0 };
+            let totalTrials = 0;
+            let trialHistory = [];
+
             const basesData = [
                 { id: 0, color: 'red', shape: 'triangle', quantity: 1 },
                 { id: 1, color: 'green', shape: 'star', quantity: 2 },
@@ -242,33 +294,26 @@
 
             let currentCardData = {};
 
-            // Elementos del DOM
+            // Elementos DOM
             const activeCard = document.getElementById('active-card');
             const basesContainer = document.getElementById('bases');
             const feedbackEl = document.getElementById('feedback');
             
-            // Variables Drag & Drop
+            // Drag & Drop Coords
             let isDragging = false;
             let startX = 0, startY = 0;
-            let currentTranslateX = 0;
-            let currentTranslateY = 0;
+            let currentTranslateX = 0, currentTranslateY = 0;
             let animationFrameId;
 
-            // --- 2. Utilidades Gráficas (SVG) ---
+            // --- Generador de Formas SVG ---
             function getShapeSVG(shape, colorKey) {
                 const hexColor = colors[colorKey];
-                // El atributo xmlns es CRÍTICO para que los navegadores lo pinten correctamente al inyectar código
                 const svgNS = 'xmlns="http://www.w3.org/2000/svg"';
-                
                 switch (shape) {
-                    case 'circle':
-                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="${hexColor}"/></svg>`;
-                    case 'square':
-                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" rx="15" fill="${hexColor}"/></svg>`;
-                    case 'triangle':
-                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,10 95,90 5,90" fill="${hexColor}" stroke-linejoin="round"/></svg>`;
-                    case 'star':
-                        return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 67,54 78,85 50,65 22,85 33,54 5,35 39,35" fill="${hexColor}"/></svg>`;
+                    case 'circle': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="${hexColor}"/></svg>`;
+                    case 'square': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" rx="15" fill="${hexColor}"/></svg>`;
+                    case 'triangle': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,10 95,90 5,90" fill="${hexColor}" stroke-linejoin="round"/></svg>`;
+                    case 'star': return `<svg ${svgNS} class="shape-svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 67,54 78,85 50,65 22,85 33,54 5,35 39,35" fill="${hexColor}"/></svg>`;
                 }
             }
 
@@ -276,25 +321,19 @@
                 element.innerHTML = '';
                 const gridContainer = document.createElement('div');
                 gridContainer.className = `shapes-grid grid-${data.quantity}`;
-                
                 for (let i = 0; i < data.quantity; i++) {
                     const shapeWrapper = document.createElement('div');
                     shapeWrapper.className = 'shape-wrapper';
                     shapeWrapper.innerHTML = getShapeSVG(data.shape, data.color);
-                    
-                    // Centrar el 3º elemento abajo si la cantidad es 3
-                    if (data.quantity === 3 && i === 2) {
-                        shapeWrapper.style.gridColumn = "1 / -1";
-                    }
-                    
+                    if (data.quantity === 3 && i === 2) shapeWrapper.style.gridColumn = "1 / -1";
                     gridContainer.appendChild(shapeWrapper);
                 }
                 element.appendChild(gridContainer);
             }
 
-            // --- 3. Lógica del Juego ---
+            // --- Lógica del Test ---
             function initGame() {
-                basesContainer.innerHTML = ''; // Limpiar por si acaso
+                basesContainer.innerHTML = '';
                 basesData.forEach(base => {
                     const baseEl = document.createElement('div');
                     baseEl.className = 'card glass base-dropzone';
@@ -303,7 +342,6 @@
                     basesContainer.appendChild(baseEl);
                 });
                 generateNewCard();
-                console.log("Regla inicial oculta:", currentRule);
             }
 
             function generateNewCard() {
@@ -312,10 +350,7 @@
                     shape: attributes.shapes[Math.floor(Math.random() * 4)],
                     quantity: attributes.quantities[Math.floor(Math.random() * 4)]
                 };
-                
                 renderCard(activeCard, currentCardData);
-                
-                // Resetear posición de la tarjeta arrastrable
                 activeCard.style.transform = 'translate(0px, 0px)';
                 activeCard.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                 currentTranslateX = 0;
@@ -323,15 +358,48 @@
             }
 
             function changeRuleSilently() {
+                previousRule = currentRule; // Almacenamos la regla que se abandona
                 const availableRules = ruleTypes.filter(r => r !== currentRule);
                 currentRule = availableRules[Math.floor(Math.random() * availableRules.length)];
-                consecutiveCorrect = 0; // Reiniciar cuenta
-                console.log("¡Regla cambiada silenciosamente a:", currentRule);
+                consecutiveCorrect = 0;
+                completedCategories++;
+
+                if (completedCategories >= maxCategorias) {
+                    setTimeout(showFinalReport, 1000);
+                }
+            }
+
+            function processTrialResults(droppedBase, isCorrect) {
+                totalTrials++;
+                
+                let isPerseverative = false;
+                if (!isCorrect) {
+                    // Criterio Clínico de Perseveración: El paciente se equivoca porque 
+                    // sigue emparejando según el criterio de la categoría anterior inmediata.
+                    if (previousRule && currentCardData[previousRule] === droppedBase[previousRule]) {
+                        isPerseverative = true;
+                        score.perseverative++;
+                    } else {
+                        score.nonPerseverative++;
+                    }
+                }
+
+                // Guardar en el historial clínico
+                trialHistory.push({
+                    trial: totalTrials,
+                    rule: currentRule,
+                    card: {...currentCardData},
+                    baseElegida: {...droppedBase},
+                    correct: isCorrect,
+                    perseverative: isPerseverative
+                });
+
+                showFeedback(isCorrect);
             }
 
             function showFeedback(isCorrect) {
-                feedbackEl.className = 'feedback-overlay'; // Resetea animaciones previas
-                void feedbackEl.offsetWidth; // Fuerza el reflujo del DOM
+                feedbackEl.className = 'feedback-overlay';
+                void feedbackEl.offsetWidth; // Force reflow
                 
                 const svgIconNS = 'xmlns="http://www.w3.org/2000/svg"';
                 if (isCorrect) {
@@ -351,7 +419,20 @@
                 document.getElementById('score-incorrect').innerText = score.incorrect;
             }
 
-            // --- 4. Sistema Drag & Drop Táctil/Mouse ---
+            function showFinalReport() {
+                // Ocultar juego y mostrar resumen estadístico
+                document.getElementById('main-game-layout').style.display = 'none';
+                document.getElementById('report-screen').style.display = 'flex';
+
+                document.getElementById('rep-total').innerText = totalTrials;
+                document.getElementById('rep-correct').innerText = score.correct;
+                document.getElementById('rep-incorrect').innerText = score.incorrect;
+                document.getElementById('rep-perseverative').innerText = score.perseverative;
+                document.getElementById('rep-non-perseverative').innerText = score.nonPerseverative;
+                document.getElementById('rep-categories').innerText = `${completedCategories}/${maxCategorias}`;
+            }
+
+            // --- Drag & Drop Engine (Táctil/Mouse) ---
             function getEventCoords(e) {
                 return e.type.includes('touch') ? 
                     { x: e.touches[0].clientX, y: e.touches[0].clientY } : 
@@ -359,22 +440,19 @@
             }
 
             function onDragStart(e) {
+                if (completedCategories >= maxCategorias) return;
                 isDragging = true;
                 activeCard.classList.add('dragging');
                 activeCard.style.transition = 'none';
-                
                 const coords = getEventCoords(e);
                 startX = coords.x - currentTranslateX;
                 startY = coords.y - currentTranslateY;
-                
-                // Feedback táctil en móviles
-                if (navigator.vibrate) navigator.vibrate(15);
+                if (navigator.vibrate) navigator.vibrate(12);
             }
 
             function onDragMove(e) {
                 if (!isDragging) return;
-                e.preventDefault(); // Previene que la pantalla baje o suba
-                
+                e.preventDefault();
                 const coords = getEventCoords(e);
                 currentTranslateX = coords.x - startX;
                 currentTranslateY = coords.y - startY;
@@ -387,11 +465,7 @@
 
             function checkCollision() {
                 const cardRect = activeCard.getBoundingClientRect();
-                const cardCenter = {
-                    x: cardRect.left + cardRect.width / 2,
-                    y: cardRect.top + cardRect.height / 2
-                };
-
+                const cardCenter = { x: cardRect.left + cardRect.width / 2, y: cardRect.top + cardRect.height / 2 };
                 const dropzones = document.querySelectorAll('.base-dropzone');
                 for (let i = 0; i < dropzones.length; i++) {
                     const baseRect = dropzones[i].getBoundingClientRect();
@@ -424,10 +498,9 @@
                     const isCorrect = currentCardData[currentRule] === droppedBase[currentRule];
                     
                     setTimeout(() => {
-                        showFeedback(isCorrect);
-                        generateNewCard();
+                        processTrialResults(droppedBase, isCorrect);
+                        if (completedCategories < maxCategorias) generateNewCard();
                     }, 300);
-
                 } else {
                     currentTranslateX = 0;
                     currentTranslateY = 0;
@@ -435,7 +508,6 @@
                 }
             }
 
-            // Asignación de Eventos
             activeCard.addEventListener('mousedown', onDragStart);
             document.addEventListener('mousemove', onDragMove, { passive: false });
             document.addEventListener('mouseup', onDragEnd);
@@ -444,7 +516,6 @@
             document.addEventListener('touchmove', onDragMove, { passive: false });
             document.addEventListener('touchend', onDragEnd);
 
-            // Arrancar el juego finalmente
             initGame();
         };
     </script>
